@@ -11,8 +11,8 @@ services:
     env_file:
       - ./.env
     ports:
-      - ${VAULT_PORT}:8200
+      - 8200:8200
     volumes:
-      - C:\Users\alexmalder\devops\vault\data\data:/vault/file
-      - C:\Users\alexmalder\devops\vault\data\logs:/vault/logs
-      - C:\Users\alexmalder\devops\vault\vault-config.json:/vault/config/vault-config.json
+      - ./data/data:/vault/file
+      - ./data/logs:/vault/logs
+      - ./vault-config.json:/vault/config/vault-config.json:ro
