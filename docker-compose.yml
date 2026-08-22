@@ -8,8 +8,6 @@ services:
     - -config=/vault/config/vault-config.json
     cap_add:
       - IPC_LOCK
-    env_file:
-      - ./.env
     ports:
       - 8200:8200
     volumes:
