@@ -1,6 +1,29 @@
 ---
 services:
-  vault:
+  init:
+    container_name: fix-permissions
+    image: busybox
+    command:
+      - "sh"
+      - "-c"
+      - "chown -R 100:1000 /vault/data && chmod 700 /vault/data && chown -R 100:1000 /vault/certs"
+    volumes:
+      - ./vault-data:/vault/data
+      - ./certs:/vault/certs
+
+  client:
+    build: .
+    container_name: client
+    restart: unless-stopped
+    environment:
+      VAULT_ADDR: "https://vault.vnmntn.com:8200"
+    command:
+      - sleep
+      - infinity
+    networks:
+      - vault-network
+
+  vault.vnmntn.com:
     image: hashicorp/vault:1.21 # trying 1.21 (7 months ago)
     container_name: vault-server
     restart: unless-stopped
@@ -11,10 +34,10 @@ services:
 
     # Mount configuration, data, logs, and certificates
     volumes:
-      - ./vault-config.hcl:/vault/config/vault.hcl:ro
-      - vault-data:/vault/data
-      - vault-logs:/vault/logs
-      - ./certs:/vault/certs:ro
+      - ./vault-config.hcl:/vault/vault.hcl
+      - ./certs:/vault/certs
+      - ./vault-data:/vault/data
+      - ./vault-logs:/vault/logs
 
     # Environment variables for Vault configuration
     environment:
@@ -28,7 +51,9 @@ services:
       - "8201:8201"
 
     # Start Vault server with the configuration file
-    command: server
+    command: 
+      - server
+      - -config=/vault/vault.hcl
 
     # Health check to monitor Vault availability
     healthcheck:
@@ -43,11 +68,9 @@ services:
       - vault-network
 
 # Named volumes for persistent storage
-volumes:
-  vault-data:
-    driver: local
-  vault-logs:
-    driver: local
+# volumes:
+#   vault-data:
+#   vault-logs:
 
 # Custom network for Vault communication
 networks:

@@ -1,3 +1,5 @@
 /vault-config
 /certs
-/output.txt
+/vault-data
+/vault-logs
+/logs.md
