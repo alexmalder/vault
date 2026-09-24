@@ -2,5 +2,6 @@
 
 ## How to init
 
-`docker exec -it my_vault /bin/sh -c "vault operator init"`
-
+```
+vault operator init -key-shares=5 -key-threshold=3
+```
