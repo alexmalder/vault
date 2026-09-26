@@ -1,3 +1,5 @@
-/.env
-/data
-/output.txt
+/vault-config
+/certs
+/vault-data
+/vault-logs
+/logs.md
