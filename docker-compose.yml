@@ -1,18 +1,78 @@
 ---
 services:
-  vault:
-    image: vault:1.3.1
+  init:
+    container_name: fix-permissions
+    image: busybox
     command:
-    - vault 
-    - server 
-    - -config=/vault/config/vault-config.json
+      - "sh"
+      - "-c"
+      - "chown -R 100:1000 /vault/data && chmod 700 /vault/data && chown -R 100:1000 /vault/certs"
+    volumes:
+      - ./vault-data:/vault/data
+      - ./certs:/vault/certs
+
+  client:
+    build: .
+    container_name: client
+    restart: unless-stopped
+    environment:
+      VAULT_ADDR: "https://vault.vnmntn.com:8200"
+    command:
+      - sleep
+      - infinity
+    networks:
+      - vault-network
+
+  vault.vnmntn.com:
+    image: hashicorp/vault:1.21 # trying 1.21 (7 months ago)
+    container_name: vault-server
+    restart: unless-stopped
+
+    # Required capability for memory locking (prevents secrets from being swapped to disk)
     cap_add:
       - IPC_LOCK
-    ports:
-      - 8200:8200
-    environment:
-      VAULT_ADDR: http://127.0.0.1:8200
+
+    # Mount configuration, data, logs, and certificates
     volumes:
-      - ./data/data:/vault/file
-      - ./data/logs:/vault/logs
-      - ./vault-config.json:/vault/config/vault-config.json:ro
+      - ./vault-config.hcl:/vault/vault.hcl
+      - ./certs:/vault/certs
+      - ./vault-data:/vault/data
+      - ./vault-logs:/vault/logs
+
+    # Environment variables for Vault configuration
+    environment:
+      - VAULT_ADDR=https://127.0.0.1:8200
+      - VAULT_API_ADDR=https://vault:8200
+      - VAULT_SKIP_VERIFY=false
+
+    # Expose Vault API and cluster ports
+    ports:
+      - "8200:8200"
+      - "8201:8201"
+
+    # Start Vault server with the configuration file
+    command: 
+      - server
+      - -config=/vault/vault.hcl
+
+    # Health check to monitor Vault availability
+    healthcheck:
+      test: ["CMD", "vault", "status", "-address=https://127.0.0.1:8200", "-tls-skip-verify"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    # Network configuration
+    networks:
+      - vault-network
+
+# Named volumes for persistent storage
+# volumes:
+#   vault-data:
+#   vault-logs:
+
+# Custom network for Vault communication
+networks:
+  vault-network:
+    driver: bridge
